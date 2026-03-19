@@ -7,11 +7,6 @@ window.APP = {
     currentType: null,
     currentSeason: 1,
     currentEpisode: 1,
-    currentServerIndex: 0,
-    currentId: null,
-    currentType: null,
-    currentSeason: 1,
-    currentEpisode: 1,
 
     async init() {
         UI.populateYears();
