@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hereos - Netflix Style Streaming</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container navbar-content">
+            <div style="display: flex; align-items: center;">
+                <a class="logo" onclick="location.reload()">HEREOS</a>
+                <nav class="nav-links">
+                    <a href="#" onclick="location.reload()">Home</a>
+                    <a href="#">TV Shows</a>
+                    <a href="#">Movies</a>
+                    <a href="#">New & Popular</a>
+                </nav>
+            </div>
+            <div class="search-box">
+                <button id="searchBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </button>
+                <input type="text" id="searchInput" placeholder="Titles, people, genres">
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="hero" class="hero">
+            <div class="hero-overlay"></div>
+            <div class="container hero-content">
+                <h2 id="heroTitle"></h2>
+                <p id="heroDesc"></p>
+                <div class="hero-actions">
+                    <button class="btn btn-primary" id="heroPlayBtn">
+                        <svg viewBox="0 0 24 24" width="24" height="24" style="margin-right: 10px;"><path fill="currentColor" d="M6 4l12 8-12 8z"/></svg>
+                        Play
+                    </button>
+                    <button class="btn btn-secondary">
+                        <svg viewBox="0 0 24 24" width="24" height="24" style="margin-right: 10px;"><path fill="currentColor" d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                        More Info
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="container movies-section">
+            <div class="section-header">
+                <h3>Trending Content (2009 - Present)</h3>
+                <div class="filters">
+                    <select id="yearFilter">
+                        <option value="">Year Filter</option>
+                    </select>
+                </div>
+            </div>
+            <div class="movie-grid" id="movieGrid">
+                <!-- Data injected via JS -->
+            </div>
+            <button class="btn" id="loadMore">Show More</button>
+        </section>
+    </main>
+
+    <!-- Modal -->
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="playerContainer" class="player-container"></div>
+            <div class="modal-info">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2 id="modalTitle" style="margin-bottom: 5px;"></h2>
+                        <p id="modalInfo" style="color: #46d369; font-weight: bold;"></p>
+                    </div>
+                    <div id="tvSelectors" class="tv-selectors" style="display: none;">
+                        <select id="seasonSelect"></select>
+                        <select id="episodeSelect"></select>
+                    </div>
+                </div>
+                <p id="modalOverview" style="margin-top: 20px; color: #fff; font-size: 1.1rem; max-width: 80%;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts in direct order for maximum compatibility -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
