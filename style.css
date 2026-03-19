@@ -420,3 +420,26 @@ body {
     .search-box:focus-within input, .search-box input:not(:placeholder-shown) { width: 140px; }
     .logo { font-size: 1.5rem; }
 }
+
+/* Server Switcher Styles */
+.server-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.server-btn:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: #fff;
+}
+
+.server-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    font-weight: bold;
+}

@@ -7,6 +7,11 @@ window.APP = {
     currentType: null,
     currentSeason: 1,
     currentEpisode: 1,
+    currentServerIndex: 0,
+    currentId: null,
+    currentType: null,
+    currentSeason: 1,
+    currentEpisode: 1,
 
     async init() {
         UI.populateYears();
@@ -134,6 +139,7 @@ window.APP = {
             this.currentType = type;
             this.currentSeason = 1;
             this.currentEpisode = 1;
+            this.currentServerIndex = 0; // Reset server index when opening new modal
             
             title.textContent = movie.title || movie.name;
             const year = (movie.release_date || movie.first_air_date || '').split('-')[0];
@@ -176,6 +182,7 @@ window.APP = {
 
     renderServerList() {
         const serverList = document.getElementById('serverList');
+        if (!serverList) return;
         serverList.innerHTML = CONFIG.SERVERS.map((server, index) => `
             <button class="server-btn ${index === this.currentServerIndex ? 'active' : ''}" 
                     onclick="window.APP.switchServer(${index})">
