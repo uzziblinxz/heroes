@@ -1,3 +1,111 @@
+/**
+ * HEREOS BUNDLED APP SCRIPT
+ * Consolidating all modules for maximum deployment compatibility.
+ */
+
+// 1. CONFIGURATION
+const CONFIG = {
+    TMDB_API_KEY: '2b06434343c471355a9e33a4fb5eca3a',
+    BASE_URL: 'https://api.themoviedb.org/3',
+    IMG_URL: 'https://image.tmdb.org/t/p/w500',
+    BACKDROP_URL: 'https://image.tmdb.org/t/p/original',
+    SERVERS: [
+        { name: 'Server 1', movie: 'https://vidsrc.to/embed/movie/', tv: 'https://vidsrc.to/embed/tv/' },
+        { name: 'Server 2', movie: 'https://vidsrc.me/embed/movie?tmdb=', tv: 'https://vidsrc.me/embed/tv?tmdb=' },
+        { name: 'Server 3', movie: 'https://embed.su/embed/movie/', tv: 'https://embed.su/embed/tv/' }
+    ]
+};
+
+// 2. API SERVICE
+const API = {
+    async fetchMovies(page = 1, year = '') {
+        const yearParam = year ? `&primary_release_date.gte=${year}-01-01&primary_release_date.lte=${year}-12-31` : '&primary_release_date.gte=2009-01-01';
+        const url = `${CONFIG.BASE_URL}/discover/movie?api_key=${CONFIG.TMDB_API_KEY}&page=${page}${yearParam}&sort_by=popularity.desc`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`TMDB Error: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error('API Error:', error);
+            return { error: true, message: error.message };
+        }
+    },
+
+    async search(query) {
+        const url = `${CONFIG.BASE_URL}/search/multi?api_key=${CONFIG.TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Search Error: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            return { error: true, message: error.message };
+        }
+    },
+
+    async fetchDetails(id, type = 'movie') {
+        const url = `${CONFIG.BASE_URL}/${type}/${id}?api_key=${CONFIG.TMDB_API_KEY}`;
+        try {
+            const response = await fetch(url);
+            return await response.json();
+        } catch (error) {
+            return null;
+        }
+    }
+};
+
+// 3. UI COMPONENTS
+const UI = {
+    createMovieCard(movie) {
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        const poster = movie.poster_path ? CONFIG.IMG_URL + movie.poster_path : 'https://via.placeholder.com/500x750?text=No+Poster';
+        const title = movie.title || movie.name;
+        const year = (movie.release_date || movie.first_air_date || '').split('-')[0] || 'N/A';
+        const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A';
+
+        card.innerHTML = `
+            <div class="movie-rating">★ ${rating}</div>
+            <img src="${poster}" alt="${title}" loading="lazy">
+            <div class="movie-info">
+                <h4>${title}</h4>
+                <div class="movie-meta">
+                    <span>${year}</span>
+                    <span class="type-badge">${movie.title ? 'Movie' : 'TV'}</span>
+                </div>
+            </div>
+        `;
+        card.onclick = () => window.APP.openModal(movie.id, movie.title ? 'movie' : 'tv');
+        return card;
+    },
+
+    updateHero(movie) {
+        const hero = document.getElementById('hero');
+        const title = document.getElementById('heroTitle');
+        const desc = document.getElementById('heroDesc');
+        const backdrop = movie.backdrop_path ? CONFIG.BACKDROP_URL + movie.backdrop_path : 'https://images.unsplash.com/photo-1574267432553-4b4628081c31?q=80&w=2073&auto=format&fit=crop';
+        
+        hero.style.backgroundImage = `url(${backdrop})`;
+        title.textContent = movie.title || movie.name || 'Featured Movie';
+        desc.textContent = (movie.overview || '').substring(0, 180) + '...';
+        document.getElementById('heroPlayBtn').onclick = () => {
+            if (movie.id) window.APP.openModal(movie.id, movie.title ? 'movie' : 'tv');
+        };
+    },
+
+    populateYears() {
+        const select = document.getElementById('yearFilter');
+        if (!select) return;
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear; i >= 2009; i--) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            select.appendChild(option);
+        }
+    }
+};
+
+// 4. MAIN APPLICATION
 window.APP = {
     currentPage: 1,
     currentYear: '',
@@ -9,27 +117,22 @@ window.APP = {
     currentEpisode: 1,
 
     async init() {
+        console.log('App Initializing...');
         try {
             UI.populateYears();
             await this.loadContent();
             this.setupEventListeners();
         } catch (error) {
-            console.error('Initialization error:', error);
-            document.getElementById('movieGrid').innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #ff4b4b;">
-                    <h3>System Error</h3>
-                    <p>${error.message}</p>
-                    <p style="font-size: 0.8rem; margin-top: 10px; color: #888;">Check if your JS files are loading correctly.</p>
-                </div>
-            `;
+            console.error('App Crash:', error);
+            this.showErrorMessage(error.message);
         }
     },
 
     async loadContent() {
         const movieGrid = document.getElementById('movieGrid');
-        if (this.currentPage === 1) {
-            movieGrid.innerHTML = '<div class="loader"></div>';
-        }
+        if (!movieGrid) return;
+        
+        if (this.currentPage === 1) movieGrid.innerHTML = '<div class="loader"></div>';
         
         const data = await API.fetchMovies(this.currentPage, this.currentYear);
         
@@ -38,31 +141,23 @@ window.APP = {
                 movieGrid.innerHTML = '';
                 UI.updateHero(data.results[0]);
             }
-            
-            data.results.forEach(movie => {
-                const card = UI.createMovieCard(movie);
-                movieGrid.appendChild(card);
-            });
+            data.results.forEach(movie => movieGrid.appendChild(UI.createMovieCard(movie)));
             document.getElementById('loadMore').style.display = 'block';
         } else {
-            if (this.currentPage === 1) {
-                movieGrid.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #fff;">
-                        <h3 style="color: var(--primary);">Unable to load movies</h3>
-                        <p style="margin-top: 10px; color: #b3b3b3;">${data?.message || 'Check your internet connection or API key.'}</p>
-                        <button class="btn btn-primary" style="margin-top: 20px;" onclick="location.reload()">Try Again</button>
-                    </div>
-                `;
-                document.getElementById('loadMore').style.display = 'none';
-                
-                // Set fallback hero
-                UI.updateHero({
-                    title: "Welcome to Hereos",
-                    overview: "Discover and watch movies and series from 2009 to the present. Please ensure your API key is configured correctly in js/config.js.",
-                    backdrop_path: ""
-                });
-            }
+            this.showErrorMessage(data?.message || "Check your internet connection.");
         }
+    },
+
+    showErrorMessage(msg) {
+        const movieGrid = document.getElementById('movieGrid');
+        if (!movieGrid) return;
+        movieGrid.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #fff; grid-column: 1/-1;">
+                <h3 style="color: var(--primary);">System Error</h3>
+                <p style="margin-top: 10px; color: #b3b3b3;">${msg}</p>
+                <button class="btn btn-primary" style="margin-top: 20px;" onclick="location.reload()">Refresh Page</button>
+            </div>
+        `;
     },
 
     setupEventListeners() {
@@ -77,123 +172,77 @@ window.APP = {
             this.loadContent();
         };
 
-        window.onscroll = () => {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-        };
-
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
 
         const handleSearch = async () => {
             const query = searchInput.value.trim();
-            if (query) {
-                this.isSearching = true;
-                const movieGrid = document.getElementById('movieGrid');
-                movieGrid.innerHTML = '<div class="loader"></div>';
-                const data = await API.search(query);
-                movieGrid.innerHTML = '';
-                if (data && data.results.length > 0) {
-                    data.results.filter(m => m.poster_path).forEach(movie => {
-                        const card = UI.createMovieCard(movie);
-                        movieGrid.appendChild(card);
-                    });
-                    document.getElementById('loadMore').style.display = 'none';
-                } else {
-                    movieGrid.innerHTML = '<h3>No results found.</h3>';
-                }
-            } else {
-                this.currentPage = 1;
-                this.loadContent();
-                document.getElementById('loadMore').style.display = 'block';
+            if (!query) return;
+            const movieGrid = document.getElementById('movieGrid');
+            movieGrid.innerHTML = '<div class="loader"></div>';
+            const data = await API.search(query);
+            movieGrid.innerHTML = '';
+            if (data && data.results && data.results.length > 0) {
+                data.results.filter(m => m.poster_path).forEach(m => movieGrid.appendChild(UI.createMovieCard(m)));
+                document.getElementById('loadMore').style.display = 'none';
             }
         };
 
         searchBtn.onclick = handleSearch;
-        searchInput.onkeypress = (e) => {
-            if (e.key === 'Enter') handleSearch();
-        };
+        searchInput.onkeypress = (e) => { if (e.key === 'Enter') handleSearch(); };
 
         document.querySelector('.close-modal').onclick = () => this.closeModal();
-        window.onclick = (e) => {
-            if (e.target.id === 'movieModal') this.closeModal();
-        };
     },
 
     async openModal(id, type) {
         const modal = document.getElementById('movieModal');
         const playerContainer = document.getElementById('playerContainer');
-        const title = document.getElementById('modalTitle');
-        const info = document.getElementById('modalInfo');
-        const overview = document.getElementById('modalOverview');
         const tvSelectors = document.getElementById('tvSelectors');
-        const seasonSelect = document.getElementById('seasonSelect');
-        const episodeSelect = document.getElementById('episodeSelect');
-
+        
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
         playerContainer.innerHTML = '<div class="loader"></div>';
-        tvSelectors.style.display = 'none';
-
+        
         const movie = await API.fetchDetails(id, type);
         if (movie) {
             this.currentId = id;
             this.currentType = type;
-            this.currentSeason = 1;
-            this.currentEpisode = 1;
-            this.currentServerIndex = 0; // Reset server index when opening new modal
+            this.currentServerIndex = 0;
             
-            title.textContent = movie.title || movie.name;
-            const year = (movie.release_date || movie.first_air_date || '').split('-')[0];
-            const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A';
-            info.textContent = `${year} • ${type === 'movie' ? 'Movie' : 'Series'} • ⭐ ${rating}`;
-            overview.textContent = movie.overview;
-
+            document.getElementById('modalTitle').textContent = movie.title || movie.name;
+            document.getElementById('modalOverview').textContent = movie.overview;
             this.renderServerList();
 
             if (type === 'tv' && movie.seasons) {
                 tvSelectors.style.display = 'flex';
-                seasonSelect.innerHTML = movie.seasons
-                    .filter(s => s.season_number > 0)
-                    .map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`)
-                    .join('');
+                const sSelect = document.getElementById('seasonSelect');
+                const eSelect = document.getElementById('episodeSelect');
                 
-                const updateEpisodes = (seasonNum) => {
-                    const season = movie.seasons.find(s => s.season_number == seasonNum);
-                    const epCount = season ? season.episode_count : 1;
-                    episodeSelect.innerHTML = Array.from({length: epCount}, (_, i) => 
-                        `<option value="${i+1}">Episode ${i+1}</option>`
-                    ).join('');
+                sSelect.innerHTML = movie.seasons.filter(s => s.season_number > 0)
+                    .map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`).join('');
+                
+                const updateEps = () => {
+                    const s = movie.seasons.find(sec => sec.season_number == sSelect.value);
+                    eSelect.innerHTML = Array.from({length: s?.episode_count || 1}, (_, i) => `<option value="${i+1}">Episode ${i+1}</option>`).join('');
                 };
 
-                seasonSelect.onchange = () => {
-                    this.currentSeason = seasonSelect.value;
-                    updateEpisodes(this.currentSeason);
-                    this.updatePlayer();
-                };
-                episodeSelect.onchange = () => {
-                    this.currentEpisode = episodeSelect.value;
-                    this.updatePlayer();
-                };
-
-                updateEpisodes(1);
+                sSelect.onchange = () => { this.currentSeason = sSelect.value; updateEps(); this.updatePlayer(); };
+                eSelect.onchange = () => { this.currentEpisode = eSelect.value; this.updatePlayer(); };
+                
+                updateEps();
+                this.currentSeason = 1; this.currentEpisode = 1;
+            } else {
+                tvSelectors.style.display = 'none';
             }
             this.updatePlayer();
         }
     },
 
     renderServerList() {
-        const serverList = document.getElementById('serverList');
-        if (!serverList) return;
-        serverList.innerHTML = CONFIG.SERVERS.map((server, index) => `
-            <button class="server-btn ${index === this.currentServerIndex ? 'active' : ''}" 
-                    onclick="window.APP.switchServer(${index})">
-                ${server.name}
-            </button>
+        const list = document.getElementById('serverList');
+        if (!list) return;
+        list.innerHTML = CONFIG.SERVERS.map((s, i) => `
+            <button class="server-btn ${i === this.currentServerIndex ? 'active' : ''}" onclick="window.APP.switchServer(${i})">${s.name}</button>
         `).join('');
     },
 
@@ -204,42 +253,23 @@ window.APP = {
     },
 
     updatePlayer() {
-        const playerContainer = document.getElementById('playerContainer');
-        const server = CONFIG.SERVERS[this.currentServerIndex];
+        const player = document.getElementById('playerContainer');
+        const srv = CONFIG.SERVERS[this.currentServerIndex];
+        let url = this.currentType === 'movie' ? `${srv.movie}${this.currentId}` : `${srv.tv}${this.currentId}`;
         
-        let streamUrl = '';
-        if (this.currentType === 'movie') {
-            streamUrl = server.movie.includes('tmdb=') 
-                ? `${server.movie}${this.currentId}`
-                : `${server.movie}${this.currentId}`; // vidsrc.to uses /tmdbID
-            
-            // Special handling for vidsrc.to which uses /id
-            if (server.name === 'Server 1' || server.name === 'Server 3') {
-                streamUrl = `${server.movie}${this.currentId}`;
-            }
-        } else {
-            if (server.name === 'Server 2') {
-                streamUrl = `${server.tv}${this.currentId}&season=${this.currentSeason}&episode=${this.currentEpisode}`;
-            } else {
-                streamUrl = `${server.tv}${this.currentId}/${this.currentSeason}/${this.currentEpisode}`;
-            }
+        if (this.currentType === 'tv') {
+            url += srv.name === 'Server 2' ? `&season=${this.currentSeason}&episode=${this.currentEpisode}` : `/${this.currentSeason}/${this.currentEpisode}`;
         }
-        
-        playerContainer.innerHTML = `
-            <iframe src="${streamUrl}" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
-                allowfullscreen></iframe>
-        `;
+
+        player.innerHTML = `<iframe src="${url}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"></iframe>`;
     },
 
     closeModal() {
-        const modal = document.getElementById('movieModal');
-        const playerContainer = document.getElementById('playerContainer');
-        modal.style.display = 'none';
+        document.getElementById('movieModal').style.display = 'none';
+        document.getElementById('playerContainer').innerHTML = '';
         document.body.style.overflow = 'auto';
-        playerContainer.innerHTML = '';
     }
 };
 
+// Global init trigger
 document.addEventListener('DOMContentLoaded', () => window.APP.init());
