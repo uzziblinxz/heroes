@@ -3,6 +3,9 @@ const CONFIG = {
     BASE_URL: 'https://api.themoviedb.org/3',
     IMG_URL: 'https://image.tmdb.org/t/p/w500',
     BACKDROP_URL: 'https://image.tmdb.org/t/p/original',
-    STREAM_MOVIE_URL: 'https://vidsrc.me/embed/movie?tmdb=',
-    STREAM_TV_URL: 'https://vidsrc.me/embed/tv?tmdb='
+    SERVERS: [
+        { name: 'Server 1', movie: 'https://vidsrc.to/embed/movie/', tv: 'https://vidsrc.to/embed/tv/' },
+        { name: 'Server 2', movie: 'https://vidsrc.me/embed/movie?tmdb=', tv: 'https://vidsrc.me/embed/tv?tmdb=' },
+        { name: 'Server 3', movie: 'https://embed.su/embed/movie/', tv: 'https://embed.su/embed/tv/' }
+    ]
 };

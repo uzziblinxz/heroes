@@ -2,6 +2,11 @@ window.APP = {
     currentPage: 1,
     currentYear: '',
     isSearching: false,
+    currentServerIndex: 0,
+    currentId: null,
+    currentType: null,
+    currentSeason: 1,
+    currentEpisode: 1,
 
     async init() {
         UI.populateYears();
@@ -125,11 +130,18 @@ window.APP = {
 
         const movie = await API.fetchDetails(id, type);
         if (movie) {
+            this.currentId = id;
+            this.currentType = type;
+            this.currentSeason = 1;
+            this.currentEpisode = 1;
+            
             title.textContent = movie.title || movie.name;
             const year = (movie.release_date || movie.first_air_date || '').split('-')[0];
             const rating = movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A';
             info.textContent = `${year} • ${type === 'movie' ? 'Movie' : 'Series'} • ⭐ ${rating}`;
             overview.textContent = movie.overview;
+
+            this.renderServerList();
 
             if (type === 'tv' && movie.seasons) {
                 tvSelectors.style.display = 'flex';
@@ -147,29 +159,63 @@ window.APP = {
                 };
 
                 seasonSelect.onchange = () => {
-                    updateEpisodes(seasonSelect.value);
-                    this.updatePlayer(id, type, seasonSelect.value, episodeSelect.value);
+                    this.currentSeason = seasonSelect.value;
+                    updateEpisodes(this.currentSeason);
+                    this.updatePlayer();
                 };
                 episodeSelect.onchange = () => {
-                    this.updatePlayer(id, type, seasonSelect.value, episodeSelect.value);
+                    this.currentEpisode = episodeSelect.value;
+                    this.updatePlayer();
                 };
 
                 updateEpisodes(1);
-                this.updatePlayer(id, type, 1, 1);
-            } else {
-                this.updatePlayer(id, type);
             }
+            this.updatePlayer();
         }
     },
 
-    updatePlayer(id, type, s = 1, e = 1) {
+    renderServerList() {
+        const serverList = document.getElementById('serverList');
+        serverList.innerHTML = CONFIG.SERVERS.map((server, index) => `
+            <button class="server-btn ${index === this.currentServerIndex ? 'active' : ''}" 
+                    onclick="window.APP.switchServer(${index})">
+                ${server.name}
+            </button>
+        `).join('');
+    },
+
+    switchServer(index) {
+        this.currentServerIndex = index;
+        this.renderServerList();
+        this.updatePlayer();
+    },
+
+    updatePlayer() {
         const playerContainer = document.getElementById('playerContainer');
-        const streamUrl = type === 'movie' 
-            ? `${CONFIG.STREAM_MOVIE_URL}${id}` 
-            : `${CONFIG.STREAM_TV_URL}${id}&s=${s}&e=${e}`;
+        const server = CONFIG.SERVERS[this.currentServerIndex];
+        
+        let streamUrl = '';
+        if (this.currentType === 'movie') {
+            streamUrl = server.movie.includes('tmdb=') 
+                ? `${server.movie}${this.currentId}`
+                : `${server.movie}${this.currentId}`; // vidsrc.to uses /tmdbID
+            
+            // Special handling for vidsrc.to which uses /id
+            if (server.name === 'Server 1' || server.name === 'Server 3') {
+                streamUrl = `${server.movie}${this.currentId}`;
+            }
+        } else {
+            if (server.name === 'Server 2') {
+                streamUrl = `${server.tv}${this.currentId}&season=${this.currentSeason}&episode=${this.currentEpisode}`;
+            } else {
+                streamUrl = `${server.tv}${this.currentId}/${this.currentSeason}/${this.currentEpisode}`;
+            }
+        }
         
         playerContainer.innerHTML = `
-            <iframe src="${streamUrl}" allowfullscreen></iframe>
+            <iframe src="${streamUrl}" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowfullscreen></iframe>
         `;
     },
 
