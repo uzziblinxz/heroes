@@ -9,9 +9,20 @@ window.APP = {
     currentEpisode: 1,
 
     async init() {
-        UI.populateYears();
-        this.loadContent();
-        this.setupEventListeners();
+        try {
+            UI.populateYears();
+            await this.loadContent();
+            this.setupEventListeners();
+        } catch (error) {
+            console.error('Initialization error:', error);
+            document.getElementById('movieGrid').innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #ff4b4b;">
+                    <h3>System Error</h3>
+                    <p>${error.message}</p>
+                    <p style="font-size: 0.8rem; margin-top: 10px; color: #888;">Check if your JS files are loading correctly.</p>
+                </div>
+            `;
+        }
     },
 
     async loadContent() {
